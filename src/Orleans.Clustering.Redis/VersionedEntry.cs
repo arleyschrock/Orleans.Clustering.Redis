@@ -5,14 +5,19 @@ namespace Orleans.Clustering.Redis
     internal class VersionedEntry
     {
         public MembershipEntry Entry { get; set; }
-        public TableVersion TableVersion { get; set; }
-        public string ResourceVersion { get; set; }
+        public int Version { get; set; }
+        public string VersionEtag { get; set; }
 
-        public VersionedEntry(MembershipEntry entry, TableVersion tableVersion)
+        public VersionedEntry(MembershipEntry entry, TableVersion rowVersion)
         {
             Entry = entry;
-            TableVersion = tableVersion;
-            ResourceVersion = tableVersion.VersionEtag;
+            this.Version = rowVersion.Version;
+            this.VersionEtag = rowVersion.VersionEtag;
+        }
+
+        public TableVersion GetVersion()
+        {
+            return new TableVersion(this.Version, this.VersionEtag);
         }
 
         public VersionedEntry()

@@ -26,8 +26,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Orleans.Core" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Orleans.OrleansRuntime" Version="2.2.3" />
     <PackageReference Include="StackExchange.Redis" Version="2.0.519" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\src\Orleans.Core\Orleans.Core.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Orleans.Runtime\Orleans.Runtime.csproj" />
   </ItemGroup>
 </Project>

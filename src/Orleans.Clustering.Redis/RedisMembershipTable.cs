@@ -144,13 +144,21 @@ namespace Orleans.Clustering.Redis
             var _vesrionEtag = batch.StringGetAsync(ClusterVersionEtagKey);
             var _rows = batch.HashGetAllAsync(ClusterKey);
             batch.Execute();
-
+            List<SiloAddress> Dead = new List<SiloAddress>();
             var TableVersion = new TableVersion((int)await _vesrionId, await _vesrionEtag);
             var rows = (await _rows).Select(x =>
             {
                 var ent = Deserialize<VersionedEntry>(x.Value);
+                if (ent.Entry.Status == SiloStatus.Dead && (DateTime.UtcNow - ent.Entry.IAmAliveTime).TotalMinutes > 5)
+                {
+                    Dead.Add(ent.Entry.SiloAddress);
+                    return null;
+                }
+
                 return Tuple.Create(ent.Entry, ent.GetVersion().VersionEtag);
-            }).ToList();
+            }).Where(x => x != null).ToList();
+            // Drop Long Dead Silos, From Redis
+            await Task.WhenAll(Dead.Select(x => _db.HashDeleteAsync(this.ClusterKey, (RedisValue)x.ToString())));
 
             if (rows.Count == 0)
             {

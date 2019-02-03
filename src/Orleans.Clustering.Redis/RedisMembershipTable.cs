@@ -149,7 +149,7 @@ namespace Orleans.Clustering.Redis
             var rows = (await _rows).Select(x =>
             {
                 var ent = Deserialize<VersionedEntry>(x.Value);
-                if (ent.Entry.Status == SiloStatus.Dead && (DateTime.UtcNow - ent.Entry.IAmAliveTime).TotalMinutes > 5)
+                if (ent.Entry.Status == SiloStatus.Dead && (DateTime.UtcNow - ent.Entry.IAmAliveTime).TotalMinutes > 60)
                 {
                     Dead.Add(ent.Entry.SiloAddress);
                     return null;

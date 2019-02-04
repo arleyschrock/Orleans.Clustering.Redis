@@ -158,7 +158,11 @@ namespace Orleans.Clustering.Redis
                 return Tuple.Create(ent.Entry, ent.GetVersion().VersionEtag);
             }).Where(x => x != null).ToList();
             // Drop Long Dead Silos, From Redis
-            await Task.WhenAll(Dead.Select(x => _db.HashDeleteAsync(this.ClusterKey, (RedisValue)x.ToString())));
+            await Task.WhenAll(Dead.Select(x =>
+                Task.WhenAll(
+                    _db.HashDeleteAsync(this.ClusterKey, (RedisValue)x.ToString()),
+                    _db.HashDeleteAsync(this.ClusterKeyEtag, (RedisValue)x.ToString())
+                )));
 
             if (rows.Count == 0)
             {

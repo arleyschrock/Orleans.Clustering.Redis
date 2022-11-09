@@ -7,6 +7,7 @@ using Orleans.Hosting;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
 
 namespace RedisGatewayHost
 {
@@ -37,23 +38,26 @@ namespace RedisGatewayHost
             }
         }
 
-        private static async Task<ISiloHost> StartSilo()
+        private static async Task<IHost> StartSilo()
         {
-            var builder = new SiloHostBuilder()
-                .Configure<ClusterOptions>(options =>
+            var builder = new HostBuilder()
+                .UseOrleans((context, siloBuilder) =>
                 {
-                    options.ClusterId = "testcluster";
-                    options.ServiceId = "testcluster";
-                })
-                .ConfigureEndpoints(new Random(1).Next(30001, 30100), new Random(1).Next(20001, 20100), listenOnAnyHostAddress: true)
-                .AddMemoryGrainStorageAsDefault()
-                .UseRedisClustering(opt =>
-                {
-                    opt.ConnectionString = "localhost:6379";
-                    opt.Database = 0;
-                })
-                .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(HelloGrain).Assembly).WithReferences())
-                .ConfigureLogging(logging => logging.AddConsole());
+                    siloBuilder.Configure<ClusterOptions>(options =>
+                        {
+                            options.ClusterId = "testcluster";
+                            options.ServiceId = "testcluster";
+                        })
+                        .ConfigureEndpoints(new Random(1).Next(30001, 30100), new Random(1).Next(20001, 20100),
+                            listenOnAnyHostAddress: true)
+                        .AddMemoryGrainStorageAsDefault()
+                        .UseRedisClustering(opt =>
+                        {
+                            opt.ConnectionString = "localhost:6379";
+                            opt.Database = 0;
+                        })
+                        .ConfigureLogging(logging => logging.AddConsole());
+                });
 
             var host = builder.Build();
             await host.StartAsync();

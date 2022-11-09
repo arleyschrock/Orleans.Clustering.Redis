@@ -7,6 +7,8 @@ using Orleans.Hosting;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace RedisClient
 {
@@ -21,15 +23,13 @@ namespace RedisClient
         {
             try
             {
-                using (var client = await StartClientWithRetries())
-                {
-                    await DoClientWork(client);
+                var client = await StartClientWithRetries();
+                await DoClientWork(client);
 
-                    Console.CancelKeyPress += OnExit;
-                    Closing.WaitOne();
+                Console.CancelKeyPress += OnExit;
+                Closing.WaitOne();
 
-                    Console.WriteLine("Shutting down...");
-                }
+                Console.WriteLine("Shutting down...");
 
                 return 0;
             }
@@ -48,33 +48,37 @@ namespace RedisClient
             {
                 try
                 {
-                    client = new ClientBuilder()
-                        .Configure<ClusterOptions>(options =>
-                        {
-                            options.ClusterId = "testcluster";
-                            options.ServiceId = "testcluster";
-                        })
-                        .UseRedisClustering(opt =>
-                        {
-                            opt.ConnectionString = "localhost:6379";
-                            opt.Database = 0;
-                        })
-                        .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(IHello).Assembly).WithReferences())
+                    var host = new HostBuilder()
                         .ConfigureLogging(logging => logging.AddConsole())
-                        .Build();
+                        .UseOrleansClient((context, cl) =>
+                        {
+                            cl.Configure<ClusterOptions>(options =>
+                                {
+                                    options.ClusterId = "testcluster";
+                                    options.ServiceId = "testcluster";
+                                })
+                                .UseRedisClustering(opt =>
+                                {
+                                    opt.ConnectionString = "localhost:6379";
+                                    opt.Database = 0;
+                                });
+                        }).Build();
 
-                    await client.Connect();
+                    await host.StartAsync();
                     Console.WriteLine("Client successfully connect to silo host");
+                    client = host.Services.GetRequiredService<IClusterClient>();
                     break;
                 }
                 catch (SiloUnavailableException)
                 {
                     attempt++;
-                    Console.WriteLine($"Attempt {attempt} of {initializeAttemptsBeforeFailing} failed to initialize the Orleans client.");
+                    Console.WriteLine(
+                        $"Attempt {attempt} of {initializeAttemptsBeforeFailing} failed to initialize the Orleans client.");
                     if (attempt > initializeAttemptsBeforeFailing)
                     {
                         throw;
                     }
+
                     await Task.Delay(TimeSpan.FromSeconds(4));
                 }
             }

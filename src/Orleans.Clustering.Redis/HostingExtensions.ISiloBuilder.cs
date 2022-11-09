@@ -16,7 +16,6 @@ namespace Microsoft.Extensions.Hosting
                 {
                     services.Configure(configuration);
                 }
-
                 services.AddRedis();
             });
         }
